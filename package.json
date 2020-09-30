@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
+  "name": "ctf-changelist-sync",
   "version": "0.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Github Action to overlay a Contentful Sync with a \"Changelist\" of Entries. ",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -15,17 +15,17 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/actions/typescript-action.git"
+    "url": "git+https://github.com/yan-kisen/ctf-changelist-sync.git"
   },
   "keywords": [
     "actions",
-    "node",
-    "setup"
+    "contentful"
   ],
-  "author": "",
+  "author": "yan-kisen",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.5"
+    "@actions/core": "^1.2.5",
+    "contentful": "^7.14.6"
   },
   "devDependencies": {
     "@types/jest": "^26.0.10",
