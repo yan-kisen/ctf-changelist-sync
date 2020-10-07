@@ -47,9 +47,16 @@
     "ts-jest": "^26.4.1",
     "typescript": "^4.0.2"
   },
-  "author": "yan-kisen <yan.kisen@coresecure.com> (https://coresecure.com)",
+  "author": {
+    "name": "yan-kisen",
+    "email": "yan.kisen@coresecure.com",
+    "website": "https://coresecure.com"
+  },
   "contributors": [
-    "pablo-kropilnicki <pablo.kropilnicki@coresecure.com>"
+    {
+      "name": "pablo-kropilnicki",
+      "email": "pablo.kropilnicki@coresecure.com"
+    }
   ],
   "private": true,
   "license": "MIT"
