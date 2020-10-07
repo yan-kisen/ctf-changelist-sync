@@ -23,7 +23,10 @@
   ],
   "types": "src/@types",
   "dependencies": {
+    "@actions/artifact": "^0.4.0",
     "@actions/core": "^1.2.5",
+    "@actions/github": "^4.0.0",
+    "@octokit/webhooks": "^7.12.1",
     "contentful": "^7.14.6",
     "fs-extra": "^9.0.1",
     "path": "^0.12.7"
