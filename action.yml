@@ -5,6 +5,10 @@ inputs:
   changelist-id:
     required: false
     description: 'Changelist ID to be queried & then overlayed ontop of the initial Contentful Sync'
+  sync-file-path:
+    required: false
+    description: 'File path where the generated JSON will be saved. Defaults to `.cache/syncCollection.json`'
+    default: '.cache/syncCollection.json'
 outputs:
   something:
     description: 'surely this will output something...'
@@ -12,5 +16,9 @@ runs:
   using: 'node12'
   main: 'dist/index.js'
 branding:
-  icon: 'upload-cloud'
-  color: 'red'
+# NOTE: All icons here: https://haya14busa.github.io/github-action-brandings/
+  color: 'yellow'
+  icon: 'git-merge'
+#  icon: 'refresh-ccw'
+#  icon: 'download-cloud'
+
