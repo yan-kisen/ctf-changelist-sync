@@ -434,7 +434,7 @@ function run() {
             });
             core.info('File saved successfully');
             const data = fs_extra_1.default.readJsonSync(syncFilePath);
-            console.log(data); // => JP
+            core.debug(`Entry count: ${data.entries.length})`); // check that content has been written
             // TODO: think of somethign meaningful to output
             core.setOutput('something', `There's always gotta be something.... ${new Date().toTimeString()}`);
         }
