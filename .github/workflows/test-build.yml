@@ -1,0 +1,27 @@
+name: 'GH Action - Test Build'
+on: # rebuild any PRs and main branch changes
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'releases/*'
+
+env:
+  DEPLOYMENT_ENV: test
+  NODE_ENV: development
+  CTF_CDA_ACCESS_TOKEN: ${{secrets.CTF_CDA_ACCESS_TOKEN}}
+  CTF_CPA_ACCESS_TOKEN: ${{secrets.CTF_CPA_ACCESS_TOKEN}}
+  CTF_SPACE_ID: ${{ secrets.CTF_SPACE_ID }}
+  CTF_ENVIRONMENT_ID: master
+  DEBUG_LEVEL: 2 # NOTE: increase this to get more log information
+
+
+jobs:
+  build: # make sure build/ci work properly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          npm install
+      - run: |
+          npm run all

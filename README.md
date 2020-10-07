@@ -2,31 +2,32 @@
   <a href="https://github.com/actions/typescript-action/actions"><img alt="typescript-action status" src="https://github.com/actions/typescript-action/workflows/build-test/badge.svg"></a>
 </p>
 
-# Contentful Queried Sync - Github Action
+# Contentful Changelist Sync - Github Action
 
-Use this template to bootstrap the creation of a TypeScript action.:rocket:
+Custom Github Action to overlay a SyncCollection with updated `Entries` from a `Changelist`
 
-This template includes compilation support, tests, a validation workflow, publishing, and versioning guidance.  
+(These are special ContentTypes which the action depends on. Feel free to make the query more generic)
 
-If you are new, there's also a simpler introduction.  See the [Hello World JavaScript Action](https://github.com/actions/hello-world-javascript-action)
+---
 
-## Create an action from this template
-
-Click the `Use this Template` and provide the new repo details for your action
+This project was bootstrapped from the [Typescript Action Template](https://github.com/actions/typescript-action) & includes compilation support, tests, a validation workflow, publishing, and versioning guidance.
 
 ## Code in Main
 
-Install the dependencies  
+Install the dependencies
+
 ```bash
 $ npm install
 ```
 
 Build the typescript and package it for distribution
+
 ```bash
 $ npm run build && npm run package
 ```
 
-Run the tests :heavy_check_mark:  
+Run the tests :heavy_check_mark:
+
 ```bash
 $ npm test
 
@@ -38,41 +39,49 @@ $ npm test
 ...
 ```
 
-## Change action.yml
+## Testing Github Actions locally with ACT
 
-The action.yml contains defines the inputs and output for your action.
+[ACT is allows you to execute github actions](https://github.com/nektos/act)
 
-Update the action.yml with your name, description, inputs and outputs for your action.
+1. `brew install act`
 
-See the [documentation](https://help.github.com/en/articles/metadata-syntax-for-github-actions)
+2. copy & update
 
-## Change the Code
+- `.secrets.template` ==> `.secrets`
+- `.env.template` ==> `.env`
 
-Most toolkit and CI/CD operations involve async operations so the action is run in an async function.
+3. Modify [`test-run.yml`](./.github/workflows/test-run.yml) to suit your needs
 
-```javascript
-import * as core from '@actions/core';
-...
+4. Run one of the sample workflows
 
-async function run() {
-  try { 
-      ...
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
-}
+```shell-script
 
-run()
+## Test Compilation
+act --secret-file .secrets --env-file .env --workflows .github/workflows/test-build.yml
+
+## Test Execution
+act --secret-file .secrets --env-file .env --workflows .github/workflows/test-run.yml
+
 ```
+
+#### All together now!
+
+```shell-script
+npm run bundle && act --secret-file .secrets --env-file .env --workflows .github/workflows/test-run.yml
+```
+
+---
+
+--
 
 See the [toolkit documentation](https://github.com/actions/toolkit/blob/master/README.md#packages) for the various packages.
 
 ## Publish to a distribution branch
 
-Actions are run from GitHub repos so we will checkin the packed dist folder. 
+Actions are run from GitHub repos so we will checkin the packed dist folder.
 
 Then run [ncc](https://github.com/zeit/ncc) and push the results:
+
 ```bash
 $ npm run package
 $ git add dist
@@ -82,7 +91,7 @@ $ git push origin releases/v1
 
 Note: We recommend using the `--license` option for ncc, which will create a license file for all of the production node modules used in your project.
 
-Your action is now published! :rocket: 
+Your action is now published! :rocket:
 
 See the [versioning documentation](https://github.com/actions/toolkit/blob/master/docs/action-versioning.md)
 
