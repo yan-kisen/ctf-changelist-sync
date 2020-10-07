@@ -16,7 +16,7 @@
         /* Enables emit interoperability between CommonJS and ES Modules via creation of namespace objects for all imports. Implies 'allowSyntheticDefaultImports'. */
         "typeRoots": [
             /* List of folders to include type definitions from. */
-            "./@types"
+            "src/@types"
         ],
         "types": [
             /* Type declaration files to be included in compilation. */

@@ -43,5 +43,7 @@ export interface IChangelist extends Entry<IChangelistFields> {
   }
 }
 
-
-export type LocalSyncCollection = Pick<SyncCollection, 'entries' | 'assets' | 'deletedEntries' | 'deletedAssets' | 'nextSyncToken'>; // ## preserve only relevant properties
+export type LocalSyncCollection = Pick<
+  SyncCollection,
+  'entries' | 'assets' | 'deletedEntries' | 'deletedAssets' | 'nextSyncToken'
+> // ## preserve only relevant properties
