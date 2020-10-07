@@ -1,6 +1,6 @@
 {
   "name": "ctf-changelist-sync",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Github Action to overlay a Contentful Sync with a \"Changelist\" of Entries. ",
   "main": "lib/main.js",
   "scripts": {
