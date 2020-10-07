@@ -26,4 +26,4 @@ jobs:
       - uses: ./
         with:
           changelist-id: 'changelist-pmrc-1'
-          sync-file-path: '.cache/syncCollection.json'
+          cache-dir-path: './.cache'

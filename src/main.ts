@@ -1,20 +1,28 @@
 import {createClient, Entry} from 'contentful'
 import * as core from '@actions/core'
-import fse from 'fs-extra'
+import fse, {WriteOptions} from 'fs-extra'
 import path from 'path'
 import {IChangelist, LocalSyncCollection} from './@types/contentful'
 import {AxiosRequestConfig, AxiosResponse} from 'axios'
+import * as github from '@actions/github'
+import {Context} from '@actions/github/lib/context'
 
-/**  === DEBUG_LEVEL Reference ===
+/**
+ * Contentful Changelist Sync - Github Action
  *
- *  0 = WARNING
- *  1 = INFO
- *  2 = DEBUG
- *  3 = TRACE
+ * @author: Yan Kisen
+ * @since: 10/07/2020
  */
 
 let DEBUG_LEVEL: string | number = process.env.DEBUG_LEVEL || '2'
 try {
+  /*  === DEBUG_LEVEL Reference ===
+   *
+   *  0 = WARNING
+   *  1 = INFO
+   *  2 = DEBUG
+   *  3 = TRACE
+   */
   DEBUG_LEVEL = parseInt(DEBUG_LEVEL, 10)
 } catch (e) {
   core.warning(
@@ -23,40 +31,45 @@ try {
   DEBUG_LEVEL = 2
 }
 
+// TODO: there's probably a much better way of doing this, but here we are...
+let INDENT_LEVEL: string | number = process.env.INDENT_LEVEL || '0'
+try {
+  INDENT_LEVEL = parseInt(INDENT_LEVEL, 10)
+} catch (e) {
+  core.warning(
+    `invalid setting for process.env.INDENT_LEVEL... \\n ${INDENT_LEVEL}`
+  )
+  INDENT_LEVEL = 0
+}
+
+// NOTE: making this available here for quick modification for readability (but eliminating default spacing for the sake of file size)
+const jsonWriteOptions: WriteOptions = {
+  spaces: INDENT_LEVEL,
+  replacer: null
+}
+
+let ctfSyncData: LocalSyncCollection
+const ghContextData: Context = github.context
+
+const CTF_SPACE_ID = process.env.CTF_SPACE_ID
+const CTF_CDA_ACCESS_TOKEN = process.env.CTF_CDA_ACCESS_TOKEN
+const CTF_CPA_ACCESS_TOKEN = process.env.CTF_CPA_ACCESS_TOKEN // NOTE: Content Delivery API vs Content Preview API
+const CTF_ENVIRONMENT_ID = process.env.CTF_ENVIRONMENT_ID || 'master'
+
 async function run(): Promise<void> {
   try {
     // ## Process Inputs
     const changelistId: string = core.getInput('changelist-id')
-    let syncFilePath: string = core.getInput('sync-file-path')
-    const workspaceDir: string = process.env.GITHUB_WORKSPACE || __dirname
-
-    core.debug(`ctf-changelist-sync | arbitrary debug message`) // NOTE: debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-    core.info(`ctf-changelist-sync | changelistId: [${changelistId}]`)
 
     core.info(
-      `ctf-changelist-sync | syncFilePath: [${syncFilePath}] | workspaceDir: [${workspaceDir}]`
+      // NOTE: debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
+      `ctf-changelist-sync | changelistId: [${changelistId}]]`
     )
-
-    syncFilePath = path.resolve(workspaceDir, syncFilePath)
-
-    // ## Fetch from Contentful
-
-    let resultCollection: LocalSyncCollection
-    // ## Configuration variables
-
-    const CTF_SPACE_ID = process.env.CTF_SPACE_ID
-    const CTF_CDA_ACCESS_TOKEN = process.env.CTF_CDA_ACCESS_TOKEN
-    const CTF_CPA_ACCESS_TOKEN = process.env.CTF_CPA_ACCESS_TOKEN // NOTE: Content Delivery API vs Content Preview API
-    const CTF_ENVIRONMENT_ID = process.env.CTF_ENVIRONMENT_ID || 'master'
 
     if (!CTF_SPACE_ID || !CTF_CDA_ACCESS_TOKEN || !CTF_CPA_ACCESS_TOKEN) {
       core.setFailed('Invalid Contentful Client config')
       return
     }
-
-    console.log('CTF_SPACE_ID', CTF_SPACE_ID.length)
-    console.log('CTF_CDA_ACCESS_TOKEN', CTF_CDA_ACCESS_TOKEN.length)
-    console.log('CTF_CPA_ACCESS_TOKEN', CTF_CPA_ACCESS_TOKEN.length)
 
     const ctfClient = createClient({
       space: CTF_SPACE_ID,
@@ -79,7 +92,7 @@ async function run(): Promise<void> {
 
     // (2) If supplied, query by a changelist
     if (!changelistId) {
-      resultCollection = syncResult
+      ctfSyncData = syncResult
     } else {
       const ctfPreviewClient = createClient({
         space: CTF_SPACE_ID,
@@ -103,7 +116,7 @@ async function run(): Promise<void> {
       if (queryResults.total === 0) {
         core.warning(`No valid Entries found for Changelist: [${changelistId}]. 
         Will continue with the original SyncCollection`)
-        resultCollection = syncResult
+        ctfSyncData = syncResult
       } else {
         console.log(queryResults)
 
@@ -123,19 +136,19 @@ async function run(): Promise<void> {
 
         const updatedEntries = changelist.fields.entries?.filter(item => {
           return syncResult.entries.filter(childItem => {
-            item.sys.id === childItem.sys.id
+            return item.sys.id === childItem.sys.id
           })
         }) as Entry<any>[]
         const newEntries = changelist.fields.entries?.filter(item => {
           return syncResult.entries.filter(childItem => {
-            item.sys.id !== childItem.sys.id
+            return item.sys.id !== childItem.sys.id
           })
         }) as Entry<any>[]
 
         const updatedEntryIds = updatedEntries.map(item => item.sys.id)
 
         // (4.1) Modify Sync Collection
-        resultCollection = {
+        ctfSyncData = {
           entries: syncResult.entries.map(originalEntry => {
             if (updatedEntryIds.includes(originalEntry.sys.id)) {
               return updatedEntries.find(
@@ -152,31 +165,17 @@ async function run(): Promise<void> {
         }
 
         // (4.2) Concatenate *NEW* Entries to the Collection
-        resultCollection.entries.concat(newEntries)
+        ctfSyncData.entries.concat(newEntries)
       }
     }
 
-    core.info(`Setting syncFilePath to ${syncFilePath}`)
+    _writeToFileCache()
 
-    fse.ensureFileSync(syncFilePath)
-
-    // TODO: do we care about this being mae explicitly async?
-    // await fse.outputJSON(syncFilePath, resultCollection, {
-    fse.outputJSONSync(syncFilePath, resultCollection, {
-      spaces: 1,
-      replacer: null
-    })
-
-    core.info('File saved successfully')
-
-    const data = fse.readJsonSync(syncFilePath)
-    core.debug(`Entry count: ${data.entries.length})`) // check that content has been written
-
-    // TODO: think of somethign meaningful to output
-    core.setOutput(
+    // TODO: think of something meaningful to output
+    /*core.setOutput(
       'something',
       `There's always gotta be something.... ${new Date().toTimeString()}`
-    )
+    )*/
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)
@@ -184,6 +183,41 @@ async function run(): Promise<void> {
 }
 
 run()
+
+/**
+ * Save both the Contentful SyncCollection & Github Context JSON Data to be exported as artifacts.
+ *
+ * - TODO: do we care about the I/O operations not being async?
+ * - TODO: We could use `@actions/artifact` here as well, instead of redeclaring as a separate step, but starting to feel like this Action is "doin' to much"
+ */
+function _writeToFileCache(): void {
+  const workspaceDir: string = process.env.GITHUB_WORKSPACE || __dirname
+  const cacheDir: string = path.resolve(
+    workspaceDir,
+    core.getInput('cache-dir-path')
+  )
+  const ctfFilePath = path.resolve(cacheDir, core.getInput('ctf-file-name'))
+  const ghFilePath = path.resolve(cacheDir, core.getInput('gh-file-name'))
+
+  try {
+    fse.ensureDirSync(cacheDir)
+
+    fse.outputJSONSync(ctfFilePath, ctfSyncData, jsonWriteOptions)
+
+    core.info(`ctfSyncData saved successfully to [${ctfFilePath}]`)
+
+    fse.outputJSONSync(ghFilePath, ghContextData, jsonWriteOptions)
+
+    core.info(`ghContextData saved successfully to [${ghFilePath}]`)
+
+    core.debug(JSON.stringify(ghContextData))
+  } catch (error) {
+    core.error(error)
+    core.setFailed(error.message)
+  }
+
+  return
+}
 
 function _requestLogger(axiosRequestConfig: AxiosRequestConfig): void {
   const cleanedParams = delete {...axiosRequestConfig.params}['access_token']
