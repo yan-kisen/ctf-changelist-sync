@@ -17,6 +17,13 @@ inputs:
     required: false
     description: 'Github Context data filename. Defaults to `ghContext.json'
     default: 'ghContext.json'
+  ctf-environment-id:
+    required: false
+    description: 'Contentful environment name. (NOTE: until further notice, this will always be "master")
+    default: 'master'
+  use-preview-api:
+    required: false
+    description: 'If "true", the Sync operation is performed against the Content Preview API. (NOTE: This will disregard any input provided for the `changelist-id`)'
 ## TODO: surely we can think of something to output...
 # outputs:
 runs:
