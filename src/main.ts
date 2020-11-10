@@ -116,6 +116,7 @@ async function run(): Promise<void> {
         content_type: 'changelist',
         'fields.changelistId': changelistId,
         select: 'sys.id,fields.entries',
+        locale: '*',
         include: 1
       })
 
