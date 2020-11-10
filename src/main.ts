@@ -52,6 +52,7 @@ let ctfSyncData: LocalSyncCollection
 const ghContextData: Context = github.context
 
 const CTF_SPACE_ID = process.env.CTF_SPACE_ID
+// TODO: Sync with PreviewAPI in certain Branch Scenarios (maybe just set preview token & change host)
 const CTF_CDA_ACCESS_TOKEN = process.env.CTF_CDA_ACCESS_TOKEN
 const CTF_CPA_ACCESS_TOKEN = process.env.CTF_CPA_ACCESS_TOKEN // NOTE: Content Delivery API vs Content Preview API
 const CTF_ENVIRONMENT_ID = process.env.CTF_ENVIRONMENT_ID || 'master'
@@ -60,6 +61,9 @@ async function run(): Promise<void> {
   try {
     // ## Process Inputs
     const changelistId: string = core.getInput('changelist-id')
+    const usePreviewOnly: string = core.getInput('use-preview-api') || 'false' // only sync w/ previewAPI
+    const ctfEnvironmentId: string =
+      core.getInput('ctf-environment-id') || CTF_ENVIRONMENT_ID
 
     core.info(
       // NOTE: debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
@@ -71,10 +75,10 @@ async function run(): Promise<void> {
       return
     }
 
-    const ctfClient = createClient({
+    const ctfCdaClient = createClient({
       space: CTF_SPACE_ID,
       accessToken: CTF_CDA_ACCESS_TOKEN,
-      environment: CTF_ENVIRONMENT_ID,
+      environment: ctfEnvironmentId,
       resolveLinks: false, // NOTE: we don't want to resolve the object graph
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -83,29 +87,31 @@ async function run(): Promise<void> {
       // TODO: request/response logging is pretty obnoxious for a Sync Operation (too many requests... ) (Create separate Sync Loggers?)
     })
 
+    const ctfPreviewClient = createClient({
+      space: CTF_SPACE_ID,
+      accessToken: CTF_CPA_ACCESS_TOKEN,
+      environment: ctfEnvironmentId,
+      host: 'preview.contentful.com',
+      resolveLinks: false, // NOTE: we don't want to resolve the object graph
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      requestLogger: _requestLogger,
+      responseLogger: _responseLogger
+    })
+
+    const initialSyncClient = usePreviewOnly ? ctfPreviewClient : ctfCdaClient
+
     // (1) Perform initial Sync
-    const syncResult = await ctfClient.sync({
+    const syncResult = await initialSyncClient.sync({
       type: 'all',
       initial: true
     })
     core.info(`executeSyncInit: [${syncResult.nextSyncToken}]`)
 
     // (2) If supplied, query by a changelist
-    if (!changelistId) {
+    if (!changelistId || usePreviewOnly) {
       ctfSyncData = syncResult
     } else {
-      const ctfPreviewClient = createClient({
-        space: CTF_SPACE_ID,
-        accessToken: CTF_CPA_ACCESS_TOKEN,
-        environment: CTF_ENVIRONMENT_ID,
-        host: 'preview.contentful.com',
-        resolveLinks: false, // NOTE: we don't want to resolve the object graph
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        requestLogger: _requestLogger,
-        responseLogger: _responseLogger
-      })
-
       const queryResults = await ctfPreviewClient.getEntries({
         content_type: 'changelist',
         'fields.changelistId': changelistId,
