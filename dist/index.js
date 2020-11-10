@@ -1726,6 +1726,7 @@ const jsonWriteOptions = {
 let ctfSyncData;
 const ghContextData = github.context;
 const CTF_SPACE_ID = process.env.CTF_SPACE_ID;
+// TODO: Sync with PreviewAPI in certain Branch Scenarios (maybe just set preview token & change host)
 const CTF_CDA_ACCESS_TOKEN = process.env.CTF_CDA_ACCESS_TOKEN;
 const CTF_CPA_ACCESS_TOKEN = process.env.CTF_CPA_ACCESS_TOKEN; // NOTE: Content Delivery API vs Content Preview API
 const CTF_ENVIRONMENT_ID = process.env.CTF_ENVIRONMENT_ID || 'master';
@@ -1735,6 +1736,8 @@ function run() {
         try {
             // ## Process Inputs
             const changelistId = core.getInput('changelist-id');
+            const usePreviewOnly = core.getInput('use-preview-api') || 'false'; // only sync w/ previewAPI
+            const ctfEnvironmentId = core.getInput('ctf-environment-id') || CTF_ENVIRONMENT_ID;
             core.info(
             // NOTE: debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
             `ctf-changelist-sync | changelistId: [${changelistId}]]`);
@@ -1742,10 +1745,10 @@ function run() {
                 core.setFailed('Invalid Contentful Client config');
                 return;
             }
-            const ctfClient = contentful_1.createClient({
+            const ctfCdaClient = contentful_1.createClient({
                 space: CTF_SPACE_ID,
                 accessToken: CTF_CDA_ACCESS_TOKEN,
-                environment: CTF_ENVIRONMENT_ID,
+                environment: ctfEnvironmentId,
                 resolveLinks: false,
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
@@ -1753,32 +1756,34 @@ function run() {
                 responseLogger: _responseLogger
                 // TODO: request/response logging is pretty obnoxious for a Sync Operation (too many requests... ) (Create separate Sync Loggers?)
             });
+            const ctfPreviewClient = contentful_1.createClient({
+                space: CTF_SPACE_ID,
+                accessToken: CTF_CPA_ACCESS_TOKEN,
+                environment: ctfEnvironmentId,
+                host: 'preview.contentful.com',
+                resolveLinks: false,
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                requestLogger: _requestLogger,
+                responseLogger: _responseLogger
+            });
+            const initialSyncClient = usePreviewOnly ? ctfPreviewClient : ctfCdaClient;
             // (1) Perform initial Sync
-            const syncResult = yield ctfClient.sync({
+            const syncResult = yield initialSyncClient.sync({
                 type: 'all',
                 initial: true
             });
             core.info(`executeSyncInit: [${syncResult.nextSyncToken}]`);
             // (2) If supplied, query by a changelist
-            if (!changelistId) {
+            if (!changelistId || usePreviewOnly) {
                 ctfSyncData = syncResult;
             }
             else {
-                const ctfPreviewClient = contentful_1.createClient({
-                    space: CTF_SPACE_ID,
-                    accessToken: CTF_CPA_ACCESS_TOKEN,
-                    environment: CTF_ENVIRONMENT_ID,
-                    host: 'preview.contentful.com',
-                    resolveLinks: false,
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    requestLogger: _requestLogger,
-                    responseLogger: _responseLogger
-                });
                 const queryResults = yield ctfPreviewClient.getEntries({
                     content_type: 'changelist',
                     'fields.changelistId': changelistId,
                     select: 'sys.id,fields.entries',
+                    locale: '*',
                     include: 1
                 });
                 if (queryResults.total === 0) {
