@@ -19,7 +19,7 @@ inputs:
     default: 'ghContext.json'
   ctf-environment-id:
     required: false
-    description: 'Contentful environment name. (NOTE: until further notice, this will always be "master")
+    description: 'Contentful environment name. (NOTE: until further notice, this will always be "master")'
     default: 'master'
   use-preview-api:
     required: false
