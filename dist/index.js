@@ -1736,11 +1736,13 @@ function run() {
         try {
             // ## Process Inputs
             const changelistId = core.getInput('changelist-id');
-            const usePreviewOnly = core.getInput('use-preview-api') || 'false'; // only sync w/ previewAPI
+            const usePreviewOnly = core.getInput('use-preview-api') === 'true' || false; // only sync w/ previewAPI
             const ctfEnvironmentId = core.getInput('ctf-environment-id') || CTF_ENVIRONMENT_ID;
             core.info(
             // NOTE: debug is only output if you set the secret `ACTIONS_RUNNER_DEBUG` to true
-            `ctf-changelist-sync | changelistId: [${changelistId}]]`);
+            `ctf-changelist-sync | changelistId: [${changelistId}]] 
+      \nuse-preview-api input: [${core.getInput('use-preview-api')}]
+      \nusePreviewOnly: [${usePreviewOnly}]`);
             if (!CTF_SPACE_ID || !CTF_CDA_ACCESS_TOKEN || !CTF_CPA_ACCESS_TOKEN) {
                 core.setFailed('Invalid Contentful Client config');
                 return;
